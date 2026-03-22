@@ -12,62 +12,53 @@
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet"/>
 <style>
-/* CSS部分は変更なしのため、中身を維持してください（省略） */
-/* ...（あなたが提示したCSSをここに貼る）... */
+/* CSSを整理・統合しました */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0eeff; --bg2:#ffffff; --bg3:#f7f4ff; --bg4:#ede8ff;
+  --border:#ddd6ff; --border2:#c4b8ff; --text:#1a1040; --text2:#5a4e8a;
+  --text3:#9b8ec4; --primary:#6c3fff; --primary2:#5028dd; --primary-lt:#ede8ff;
+  --primary-glow:rgba(108,63,255,0.25); --gold:#f59e0b; --green:#10b981;
+  --red:#ef4444; --shadow:0 2px 12px rgba(108,63,255,0.10);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'M PLUS Rounded 1c',sans-serif}
+body{display:flex;justify-content:center}
+#app{width:100%;max-width:480px;min-height:100vh;display:flex;flex-direction:column;position:relative}
+
+/* 共通パーツ */
+#header{background:linear-gradient(135deg,var(--primary) 0%,#9d6bff 100%);padding:20px 16px;color:#fff}
+.xp-track{height:8px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden;margin-top:8px}
+.xp-fill{height:100%;background:#ffd700;width:0%;transition:width .5s}
+#nav{display:flex;background:#fff;border-bottom:2px solid var(--border)}
+.nav-btn{flex:1;padding:12px;border:none;background:none;font-weight:800;color:var(--text3);cursor:pointer}
+.nav-btn.active{color:var(--primary);border-bottom:3px solid var(--primary)}
+#content{flex:1;padding:16px;overflow-y:auto}
+.panel{display:none}.panel.active{display:block}
+
+/* コマンド系 */
+.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.cmd-btn{padding:12px;border:2px solid var(--border);border-radius:12px;background:#fff;font-weight:800;cursor:pointer}
+.cmd-btn.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary)}
+.locked-msg{padding:20px;text-align:center;color:var(--text3);font-size:12px}
+.act-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-weight:900;margin-top:10px;cursor:pointer}
+
+/* モーダル */
+#lvup-overlay{display:none;position:fixed;inset:0;background:rgba(108,63,255,0.9);z-index:1000;color:#fff;justify-content:center;align-items:center;flex-direction:column}
+#lvup-overlay.show{display:flex}
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:8px 20px;border-radius:99px;opacity:0;transition:0.3s;z-index:2000}
+#toast.show{opacity:1}
 </style>
 </head>
 <body>
-<script>
-// === ここからスクリプトの修正版 ===
-const STEPS=['ラフスケッチ','下書き','線画','彩色','投稿'];
-const RANKS=[{lv:1,name:'見習い絵師',xp:0},{lv:2,name:'駆け出し絵師',xp:150},{lv:3,name:'一人前絵師',xp:400},{lv:4,name:'熟練絵師',xp:800},{lv:5,name:'上級絵師',xp:1400},{lv:6,name:'伝説の絵師',xp:2200}];
-const XP_STEP=30,XP_POST=100,XP_FB=10,XP_CMD=5;
-const CMDS=[{id:'illust',label:'イラスト制作',icon:'🎨'},{id:'work',label:'仕事・バイト',icon:'💼'},{id:'study',label:'勉強',icon:'📚'},{id:'rest',label:'休憩・遊び',icon:'🎮'},{id:'exercise',label:'運動',icon:'🏃'},{id:'custom',label:'その他',icon:'✏️'}];
-const GOAL_CFG={follower:{label:'フォロワー数',unit:'人',color:'#a070e0'},posts:{label:'投稿数',unit:'投稿',color:'#06b6d4',auto:true},time:{label:'制作時間',unit:'h',color:'#f59e0b',auto:true},likes_x:{label:'X いいね累計',unit:'いいね',color:'#3b82f6',auto:true},likes_pix:{label:'pixiv いいね累計',unit:'いいね',color:'#10b981',auto:true}};
-const KEY='illustquest_v3';
+<div id="app">
+  <div id="toast"></div>
+  <div id="lvup-overlay" onclick="this.classList.remove('show')">
+    <h1>LEVEL UP!</h1>
+    <div id="lvup-rank"></div>
+    <p>タップして閉じる</p>
+  </div>
 
-let S=loadState();
-function loadState(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch{}return{xp:0,works:[],goals:[],dayLogs:[],streakDays:0,lastActiveDate:null,profile:{name:'',bio:'',icon:''}};}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch{}}
-function todayStr(){return new Date().toDateString();}
-function todayISO(){return new Date().toISOString().slice(0,10);}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-function getRank(xp){let r=RANKS[0],nx=RANKS[1];for(let i=RANKS.length-1;i>=0;i--){if(xp>=RANKS[i].xp){r=RANKS[i];nx=RANKS[i+1]||null;break;}}const inLv=xp-r.xp,needed=nx?nx.xp-r.xp:1;return{r,nx,pct:Math.min(100,Math.round(inLv/needed*100))};}
-
-// (中略: エフェクト関数などはそのまま)
-
-function selectCmd(phase,id,label){
-  const log=getTodayLog();
-  const wasSet=log[phase]!==null;
-  if(wasSet) S.xp=Math.max(0, S.xp-XP_CMD);
-  log[phase]=id;
-  log[phase+'Label']=id==='custom'?label:(CMDS.find(c=>c.id===id)?.label||id);
-  S.xp=Math.max(0, S.xp+XP_CMD);
-  save(); 
-  renderHeader();
-  renderToday();
-  toast(wasSet?(phase==='am'?'午前':'午後')+'コマンドを変更しました':'コマンドを決定しました！');
-}
-
-// サービスワーカーの登録部分を修正
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/illust-quest/sw.js').then(reg => {
-      console.log('SW registered');
-    }).catch(err => {
-      console.log('SW error', err);
-    });
-  });
-}
-
-// 初期化実行（このあたりも確実に）
-window.onload = () => {
-  renderHeader();
-  renderToday();
-  // タブ切り替えイベントなどの登録
-};
-
-</script>
-</body>
-</html>
+  <div id="header">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 id="rank-name">見習い絵師</h2>
+      <div id="lv-badge"
