@@ -8,57 +8,681 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="ILLUST QUEST"/>
-<link rel="manifest" href="/illust-quest/manifest.json"/>
+<link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet"/>
 <style>
-/* CSSを整理・統合しました */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f0eeff; --bg2:#ffffff; --bg3:#f7f4ff; --bg4:#ede8ff;
-  --border:#ddd6ff; --border2:#c4b8ff; --text:#1a1040; --text2:#5a4e8a;
-  --text3:#9b8ec4; --primary:#6c3fff; --primary2:#5028dd; --primary-lt:#ede8ff;
-  --primary-glow:rgba(108,63,255,0.25); --gold:#f59e0b; --green:#10b981;
-  --red:#ef4444; --shadow:0 2px 12px rgba(108,63,255,0.10);
+  --bg:#f0eeff;
+  --bg2:#ffffff;
+  --bg3:#f7f4ff;
+  --bg4:#ede8ff;
+  --border:#ddd6ff;
+  --border2:#c4b8ff;
+  --text:#1a1040;
+  --text2:#5a4e8a;
+  --text3:#9b8ec4;
+  --primary:#6c3fff;
+  --primary2:#5028dd;
+  --primary-lt:#ede8ff;
+  --primary-glow:rgba(108,63,255,0.25);
+  --gold:#f59e0b;
+  --gold-lt:#fff8e6;
+  --green:#10b981;
+  --green-lt:#e6faf4;
+  --red:#ef4444;
+  --red-lt:#fff0f0;
+  --blue:#3b82f6;
+  --blue-lt:#eff6ff;
+  --pink:#ec4899;
+  --pink-lt:#fff0f8;
+  --cyan:#06b6d4;
+  --cyan-lt:#ecfeff;
+  --shadow:0 2px 12px rgba(108,63,255,0.10);
+  --shadow-md:0 4px 20px rgba(108,63,255,0.15);
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'M PLUS Rounded 1c',sans-serif}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'M PLUS Rounded 1c','Hiragino Sans',sans-serif}
 body{display:flex;justify-content:center}
 #app{width:100%;max-width:480px;min-height:100vh;display:flex;flex-direction:column;position:relative}
 
-/* 共通パーツ */
-#header{background:linear-gradient(135deg,var(--primary) 0%,#9d6bff 100%);padding:20px 16px;color:#fff}
-.xp-track{height:8px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden;margin-top:8px}
-.xp-fill{height:100%;background:#ffd700;width:0%;transition:width .5s}
-#nav{display:flex;background:#fff;border-bottom:2px solid var(--border)}
-.nav-btn{flex:1;padding:12px;border:none;background:none;font-weight:800;color:var(--text3);cursor:pointer}
-.nav-btn.active{color:var(--primary);border-bottom:3px solid var(--primary)}
-#content{flex:1;padding:16px;overflow-y:auto}
+/* ===== LEVELUP OVERLAY ===== */
+#lvup-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(108,63,255,0.92);flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#lvup-overlay.show{display:flex;animation:lvup-bg .4s ease}
+@keyframes lvup-bg{from{opacity:0}to{opacity:1}}
+.lvup-stars{font-size:48px;animation:spin-slow 2s linear infinite;margin-bottom:8px}
+@keyframes spin-slow{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.lvup-label{font-size:13px;font-weight:800;color:rgba(255,255,255,.7);letter-spacing:4px;margin-bottom:8px}
+.lvup-rank{font-size:36px;font-weight:900;color:#fff;letter-spacing:2px;animation:lvup-pop .5s cubic-bezier(.34,1.56,.64,1) .2s both}
+@keyframes lvup-pop{from{transform:scale(0.4);opacity:0}to{transform:scale(1);opacity:1}}
+.lvup-sub{font-size:14px;color:rgba(255,255,255,.8);margin-top:8px;animation:lvup-pop .5s cubic-bezier(.34,1.56,.64,1) .4s both}
+.lvup-tap{font-size:12px;color:rgba(255,255,255,.5);margin-top:32px;animation:blink 1.2s ease infinite .8s}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+.confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.conf{position:absolute;width:8px;height:8px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{from{transform:translateY(-20px) rotate(0);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* ===== STEP EFFECT ===== */
+#step-effect{position:fixed;inset:0;z-index:800;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.step-burst{font-size:28px;font-weight:900;color:var(--primary);background:#fff;border-radius:99px;padding:12px 28px;box-shadow:0 0 0 0 var(--primary-glow);animation:burst .8s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes burst{0%{transform:scale(0.3);opacity:0}40%{transform:scale(1.15)}60%{transform:scale(0.95)}80%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+.step-burst.out{animation:burst-out .4s ease forwards}
+@keyframes burst-out{to{transform:scale(1.3);opacity:0}}
+
+/* ===== TOAST ===== */
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--primary);color:#fff;padding:10px 22px;border-radius:99px;font-size:13px;font-weight:800;z-index:990;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-md)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== HEADER ===== */
+#header{background:linear-gradient(135deg,var(--primary) 0%,#9d6bff 100%);padding:20px 16px 0;position:relative;overflow:hidden}
+#header::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)}
+#header::after{content:'';position:absolute;bottom:-30px;left:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.06)}
+.header-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative}
+#profile-icon{width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.5);cursor:pointer;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;transition:transform .2s}
+#profile-icon:active{transform:scale(.92)}
+#profile-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.header-info{flex:1;min-width:0}
+.app-label{font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.6);font-weight:800;margin-bottom:1px}
+#rank-name{font-size:17px;font-weight:900;color:#fff;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lv-badge{background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.4);color:#fff;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:900;letter-spacing:1px;white-space:nowrap;flex-shrink:0;backdrop-filter:blur(4px)}
+.xp-area{position:relative;margin-bottom:16px}
+.xp-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.7);margin-bottom:5px;font-weight:700;letter-spacing:.5px}
+.xp-track{height:8px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,#ffd700,#fff);border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1);position:relative}
+.xp-fill::after{content:'';position:absolute;right:0;top:0;width:4px;height:100%;background:#fff;border-radius:99px;box-shadow:0 0 8px #fff}
+
+/* ===== NAV ===== */
+#nav{display:flex;background:var(--bg2);border-bottom:2px solid var(--border);box-shadow:var(--shadow)}
+.nav-btn{flex:1;padding:11px 0;background:none;border:none;color:var(--text3);font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.5px;transition:all .2s;font-family:inherit;border-bottom:3px solid transparent;margin-bottom:-2px;position:relative}
+.nav-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+.nav-btn.active::before{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:var(--primary);border-radius:50%}
+
+/* ===== CONTENT ===== */
+#content{flex:1;overflow-y:auto;padding:14px 14px 32px}
 .panel{display:none}.panel.active{display:block}
 
-/* コマンド系 */
-.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.cmd-btn{padding:12px;border:2px solid var(--border);border-radius:12px;background:#fff;font-weight:800;cursor:pointer}
-.cmd-btn.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary)}
-.locked-msg{padding:20px;text-align:center;color:var(--text3);font-size:12px}
-.act-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-weight:900;margin-top:10px;cursor:pointer}
+/* ===== SECTION ===== */
+.sec{font-size:10px;letter-spacing:2px;color:var(--text3);font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:2px;background:var(--border);border-radius:99px}
 
-/* モーダル */
-#lvup-overlay{display:none;position:fixed;inset:0;background:rgba(108,63,255,0.9);z-index:1000;color:#fff;justify-content:center;align-items:center;flex-direction:column}
-#lvup-overlay.show{display:flex}
-#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:8px 20px;border-radius:99px;opacity:0;transition:0.3s;z-index:2000}
-#toast.show{opacity:1}
+/* ===== GAME CARD ===== */
+.gcard{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}
+.gcard:active{transform:scale(.98)}
+.gcard.primary{border-color:var(--primary);background:var(--primary-lt)}
+
+/* ===== CMD WINDOW ===== */
+.cmd-window{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.phase-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:2px solid var(--border);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:10px;letter-spacing:.5px}
+.phase-dot{width:8px;height:8px;border-radius:50%}
+.phase-dot.am{background:var(--cyan)}.phase-dot.pm{background:var(--pink)}
+.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmd-btn{background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:12px 10px;cursor:pointer;font-size:12px;font-weight:800;color:var(--text2);font-family:inherit;transition:all .15s;text-align:left;display:flex;align-items:center;gap:8px;letter-spacing:.3px;position:relative;overflow:hidden}
+.cmd-btn::after{content:'';position:absolute;inset:0;background:var(--primary);opacity:0;transition:opacity .15s}
+.cmd-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-lt);transform:translateY(-1px);box-shadow:0 4px 12px var(--primary-glow)}
+.cmd-btn:active{transform:scale(.94) translateY(0)}
+.cmd-btn.sel{border-color:var(--primary);color:var(--primary);background:var(--primary-lt);box-shadow:0 4px 12px var(--primary-glow)}
+.cmd-full{grid-column:1/-1}
+.locked-msg{text-align:center;color:var(--text3);font-size:12px;font-weight:700;padding:16px 0;letter-spacing:.5px}
+.cmd-done-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.cmd-done-label{font-size:13px;font-weight:900;color:var(--primary)}
+.cmd-change-btn{background:var(--bg3);border:2px solid var(--border);border-radius:99px;color:var(--text3);font-size:10px;padding:4px 12px;cursor:pointer;font-family:inherit;font-weight:700;transition:all .15s}
+.cmd-change-btn:hover{border-color:var(--primary);color:var(--primary)}
+.cmd-change-btn:active{transform:scale(.92)}
+.memo-inp{width:100%;padding:10px 12px;background:var(--bg3);border:2px solid var(--border);border-radius:12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;resize:none;line-height:1.6;transition:border-color .2s}
+.memo-inp:focus{border-color:var(--primary)}
+.memo-inp::placeholder{color:var(--text3)}
+.memo-save-btn{margin-top:6px;padding:6px 16px;background:var(--primary-lt);border:2px solid var(--border2);border-radius:99px;color:var(--primary);font-size:11px;cursor:pointer;font-family:inherit;font-weight:800;transition:all .15s}
+.memo-save-btn:hover{background:var(--primary);color:#fff}
+.memo-save-btn:active{transform:scale(.92)}
+
+/* ===== STEPS ===== */
+.step-badge{display:inline-block;background:var(--primary-lt);border:2px solid var(--primary);color:var(--primary);border-radius:99px;padding:4px 12px;font-size:10px;font-weight:900;letter-spacing:1px}
+.step-badge.posted{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.steps{display:flex;gap:4px;margin:10px 0}
+.step{flex:1;height:6px;background:var(--bg4);border-radius:99px;transition:background .3s}
+.step.done{background:var(--primary)}
+.step.cur{background:var(--primary);opacity:.4;animation:pulse-step 1.5s ease infinite}
+@keyframes pulse-step{0%,100%{opacity:.4}50%{opacity:.7}}
+
+/* ===== TIMER ===== */
+.timer-row{display:flex;align-items:center;gap:10px;background:var(--bg3);border:2px solid var(--border);border-radius:14px;padding:12px 14px;margin:10px 0}
+#timer-display{font-size:28px;font-weight:900;color:var(--primary);font-variant-numeric:tabular-nums;flex:1;letter-spacing:3px}
+.t-btn{width:36px;height:36px;border-radius:99px;border:2px solid var(--border);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--text2);transition:all .15s;font-weight:900}
+.t-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-lt)}
+.t-btn:active{transform:scale(.86)}
+.time-manual{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text3);font-weight:700;margin-bottom:10px}
+.t-inp{width:54px;padding:6px 8px;background:var(--bg3);border:2px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;text-align:center;font-weight:700;transition:border-color .2s}
+.t-inp:focus{border-color:var(--primary)}
+
+/* ===== BUTTONS ===== */
+.act-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--primary),#9d6bff);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:900;cursor:pointer;font-family:inherit;letter-spacing:1px;transition:all .15s;margin-top:8px;box-shadow:0 4px 16px var(--primary-glow);position:relative;overflow:hidden}
+.act-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);pointer-events:none}
+.act-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--primary-glow)}
+.act-btn:active{transform:scale(.96) translateY(0);box-shadow:0 2px 8px var(--primary-glow)}
+.act-btn.green{background:linear-gradient(135deg,var(--green),#34d399);box-shadow:0 4px 16px rgba(16,185,129,.25)}
+.act-btn.green:hover{box-shadow:0 6px 20px rgba(16,185,129,.35)}
+.act-btn.sm{padding:8px 16px;font-size:12px;width:auto;margin-top:0;border-radius:99px}
+.act-btn.ghost{background:none;border:2px solid var(--border2);color:var(--primary);box-shadow:none}
+.act-btn.ghost:hover{background:var(--primary-lt);box-shadow:none}
+
+/* ===== INPUTS ===== */
+.inp{width:100%;padding:10px 13px;background:var(--bg3);border:2px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;font-weight:700;transition:border-color .2s}
+.inp:focus{border-color:var(--primary)}
+.inp::placeholder{color:var(--text3);font-weight:400}
+.lbl{font-size:10px;color:var(--text3);letter-spacing:1px;display:block;margin-bottom:5px;font-weight:800}
+.form-g{margin-bottom:12px}
+.form-row{display:flex;gap:8px}
+.check-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.check-row input{accent-color:var(--primary);width:16px;height:16px}
+.check-row label{font-size:12px;color:var(--text2);cursor:pointer;font-weight:700}
+
+/* ===== WORK ITEM ===== */
+.work-item{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+.work-item:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.work-item:active{transform:scale(.97)}
+.work-item.posted{opacity:.5}
+
+/* ===== GOAL ===== */
+.goal-item{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow)}
+.g-track{height:8px;background:var(--bg4);border-radius:99px;margin-bottom:4px;overflow:hidden}
+.g-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.g-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-weight:700;margin-bottom:4px}
+
+/* ===== RECORD ===== */
+.rec-item{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+.rec-item:hover{border-color:var(--border2);transform:translateY(-1px)}
+.rec-item:active{transform:scale(.97)}
+.score-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.score-chip{background:var(--bg3);border:2px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:800}
+.url-link{font-size:10px;color:var(--cyan);word-break:break-all;margin-top:4px;opacity:.8;display:block;font-weight:700}
+
+/* ===== STATUS ===== */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:14px;text-align:center;box-shadow:var(--shadow)}
+.stat-num{font-size:26px;font-weight:900;color:var(--primary)}
+.stat-lbl{font-size:9px;letter-spacing:1px;color:var(--text3);margin-top:3px;font-weight:800}
+#rank-card-big{background:linear-gradient(135deg,var(--primary),#9d6bff);border-radius:20px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;box-shadow:var(--shadow-md)}
+#rank-card-big::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.1)}
+.rank-label-sm{font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.7);font-weight:800;margin-bottom:4px}
+.rank-name-big{font-size:24px;font-weight:900;color:#fff;letter-spacing:1px}
+.rank-sub-sm{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;font-weight:700}
+.xp-track-big{height:8px;background:rgba(255,255,255,.2);border-radius:99px;margin-top:12px;overflow:hidden}
+.xp-fill-big{height:100%;background:linear-gradient(90deg,#ffd700,#fff);border-radius:99px;transition:width .8s}
+.achieve-item{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.achieve-icon{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.achieve-title{font-size:13px;font-weight:900;color:var(--text);margin-bottom:2px}
+.achieve-sub{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px}
+.rank-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:2px solid var(--border)}
+.rank-row:last-child{border-bottom:none}
+.day-log{background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.day-log-date{font-size:10px;color:var(--text3);font-weight:800;letter-spacing:1px;margin-bottom:6px}
+.phase-entry{display:flex;gap:8px;padding:4px 0;font-size:12px;border-bottom:2px solid var(--border);align-items:flex-start;font-weight:700}
+.phase-entry:last-child{border-bottom:none}
+.phase-lbl{font-size:9px;font-weight:900;letter-spacing:1px;width:24px;padding-top:2px;flex-shrink:0}
+.phase-content{flex:1}
+.phase-memo{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.5;font-weight:400}
+
+/* ===== MODAL ===== */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,16,64,.7);z-index:200;overflow-y:auto;padding:16px;backdrop-filter:blur(4px)}
+#modal-overlay.open{display:block}
+#modal{background:var(--bg2);border:2px solid var(--border2);border-radius:20px;max-width:440px;margin:0 auto;padding:20px;box-shadow:0 16px 48px rgba(108,63,255,.2)}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--border)}
+.modal-ttl{font-size:15px;font-weight:900;color:var(--primary)}
+.close-btn{background:var(--bg3);border:2px solid var(--border);border-radius:99px;color:var(--text3);font-size:16px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-weight:900;line-height:1}
+.close-btn:hover{background:var(--primary-lt);border-color:var(--primary);color:var(--primary)}
+.close-btn:active{transform:scale(.88)}
+.fb-item{background:var(--bg3);border-radius:12px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--primary)}
+.fb-date{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:800;letter-spacing:.5px}
+.fb-text{font-size:12px;line-height:1.6;color:var(--text2);font-weight:700}
+.del-btn{background:var(--red-lt);border:2px solid var(--red);color:var(--red);border-radius:12px;padding:8px 14px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:800;letter-spacing:.5px;transition:all .15s}
+.del-btn:active{transform:scale(.94)}
+
+/* ===== PROFILE MODAL ===== */
+#profile-modal{display:none;position:fixed;inset:0;background:rgba(26,16,64,.7);z-index:300;padding:16px;overflow-y:auto;backdrop-filter:blur(4px)}
+#profile-modal.open{display:flex;align-items:flex-start;justify-content:center}
+#profile-inner{background:var(--bg2);border:2px solid var(--border2);border-radius:20px;width:100%;max-width:400px;padding:20px;margin-top:40px;box-shadow:0 16px 48px rgba(108,63,255,.2)}
+
+/* ===== EMPTY ===== */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty p{font-size:12px;line-height:1.8;font-weight:700}
+
+/* ===== DATE HEADER ===== */
+.date-hdr{background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.date-txt{font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.5px}
+.day-badge{background:var(--primary-lt);border:2px solid var(--primary);border-radius:99px;padding:3px 10px;font-size:10px;font-weight:900;color:var(--primary)}
+
+/* ===== XP FLOAT ===== */
+.xp-float{position:fixed;font-size:18px;font-weight:900;color:var(--gold);pointer-events:none;z-index:850;animation:xp-rise 1.2s ease forwards;text-shadow:0 2px 8px rgba(245,158,11,.4)}
+@keyframes xp-rise{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.3)}}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="toast"></div>
-  <div id="lvup-overlay" onclick="this.classList.remove('show')">
-    <h1>LEVEL UP!</h1>
-    <div id="lvup-rank"></div>
-    <p>タップして閉じる</p>
+<div id="toast"></div>
+
+<!-- LEVEL UP OVERLAY -->
+<div id="lvup-overlay" onclick="closeLvup()">
+  <div class="confetti-wrap" id="confetti"></div>
+  <div class="lvup-stars">⭐</div>
+  <div class="lvup-label">LEVEL UP !</div>
+  <div class="lvup-rank" id="lvup-rank">一人前絵師</div>
+  <div class="lvup-sub" id="lvup-sub">LV.3 に昇格！</div>
+  <div class="lvup-tap">タップして続ける</div>
+</div>
+
+<!-- STEP EFFECT -->
+<div id="step-effect"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="header-top">
+    <div id="profile-icon" onclick="openProfile()">🎨</div>
+    <div class="header-info">
+      <div class="app-label">ILLUST QUEST</div>
+      <div id="rank-name">見習い絵師</div>
+    </div>
+    <div id="lv-badge">LV.1</div>
+  </div>
+  <div class="xp-area">
+    <div class="xp-row"><span id="xp-cur">0 XP</span><span id="xp-next">NEXT 150</span></div>
+    <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div id="nav">
+  <button class="nav-btn active" data-tab="today">TODAY</button>
+  <button class="nav-btn" data-tab="works">作品</button>
+  <button class="nav-btn" data-tab="goals">目標</button>
+  <button class="nav-btn" data-tab="record">記録</button>
+  <button class="nav-btn" data-tab="status">STATUS</button>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
+  <div class="panel active" id="panel-today"><div id="today-body"></div></div>
+
+  <div class="panel" id="panel-works">
+    <div class="sec">制作中 / 完成</div>
+    <div class="form-row" style="margin-bottom:12px">
+      <input class="inp" id="work-input" placeholder="イラストのタイトルを入力..."/>
+      <button class="act-btn sm" id="work-add" style="white-space:nowrap;margin-left:4px">追加</button>
+    </div>
+    <div id="work-list"></div>
+    <div class="empty" id="work-empty"><div class="empty-icon">✏️</div><p>作品を追加しましょう</p></div>
   </div>
 
-  <div id="header">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h2 id="rank-name">見習い絵師</h2>
-      <div id="lv-badge"
+  <div class="panel" id="panel-goals">
+    <div class="sec">目標を追加</div>
+    <div class="gcard" style="margin-bottom:14px">
+      <div class="form-g"><label class="lbl">目標の種類</label>
+        <select class="inp" id="g-type" onchange="onGoalTypeChange()">
+          <option value="follower">フォロワー数</option>
+          <option value="posts">投稿数</option>
+          <option value="time">制作時間（時間）</option>
+          <option value="likes_x">X いいね数（累計）</option>
+          <option value="likes_pix">pixiv いいね数（累計）</option>
+        </select>
+      </div>
+      <div class="form-g"><label class="lbl">目標名（任意）</label><input class="inp" id="g-name" placeholder="例: 推し誕記念投稿"/></div>
+      <div class="form-g"><label class="lbl" id="g-target-lbl">目標値</label><input class="inp" id="g-target" type="number" placeholder="例: 1000"/></div>
+      <div class="form-g" id="g-current-group"><label class="lbl" id="g-current-lbl">現在の値</label><input class="inp" id="g-current" type="number" placeholder="例: 320"/></div>
+      <div class="form-g"><label class="lbl">締切日（任意）</label><input class="inp" id="g-deadline" type="date"/></div>
+      <button class="act-btn" id="g-save">目標を追加</button>
+    </div>
+    <div class="sec">設定中の目標</div>
+    <div id="goal-list"></div>
+    <div class="empty" id="goal-empty"><div class="empty-icon">🎯</div><p>目標を設定しましょう</p></div>
+  </div>
+
+  <div class="panel" id="panel-record">
+    <div class="sec">投稿記録</div>
+    <div id="record-list"></div>
+    <div class="empty" id="record-empty"><div class="empty-icon">📮</div><p>投稿済みイラストの記録が<br>ここに表示されます</p></div>
+  </div>
+
+  <div class="panel" id="panel-status">
+    <div id="rank-card-big">
+      <div class="rank-label-sm">CURRENT RANK</div>
+      <div class="rank-name-big" id="s-rank">見習い絵師</div>
+      <div class="rank-sub-sm" id="s-sub">LV.1 · 0 XP</div>
+      <div class="xp-track-big"><div class="xp-fill-big" id="s-xp-bar" style="width:0%"></div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="s-posts">0</div><div class="stat-lbl">総投稿数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-works">0</div><div class="stat-lbl">制作作品数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-days">0日</div><div class="stat-lbl">継続日数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-time">0h</div><div class="stat-lbl">総制作時間</div></div>
+    </div>
+    <div class="sec">実績</div>
+    <div id="achievements"></div>
+    <div class="sec" style="margin-top:14px">ランクテーブル</div>
+    <div class="gcard" id="rank-table"></div>
+    <div class="sec" style="margin-top:14px">行動ログ（直近7日）</div>
+    <div id="day-log-list"></div>
+  </div>
+</div>
+
+<!-- WORK MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div class="modal-hdr"><span class="modal-ttl" id="modal-title">詳細</span><button class="close-btn" id="modal-close">×</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div id="profile-modal">
+  <div id="profile-inner">
+    <div class="modal-hdr"><span class="modal-ttl">プロフィール</span><button class="close-btn" onclick="closeProfile()">×</button></div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div id="profile-preview" onclick="document.getElementById('icon-file').click()" style="width:88px;height:88px;border-radius:50%;border:3px solid var(--border2);margin:0 auto 10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;cursor:pointer;transition:transform .2s">🎨</div>
+      <div style="font-size:11px;color:var(--text3);font-weight:700">タップして画像を変更</div>
+      <input type="file" id="icon-file" accept="image/*" style="display:none" onchange="onIconUpload(event)"/>
+    </div>
+    <div class="form-g"><label class="lbl">名前</label><input class="inp" id="profile-name" placeholder="あなたの名前・ハンドルネーム"/></div>
+    <div class="form-g"><label class="lbl">ひとこと</label><input class="inp" id="profile-bio" placeholder="例: イラスト描いてます"/></div>
+    <button class="act-btn" onclick="saveProfile()">保存</button>
+  </div>
+</div>
+</div>
+
+<script>
+const STEPS=['ラフスケッチ','下書き','線画','彩色','投稿'];
+const RANKS=[{lv:1,name:'見習い絵師',xp:0},{lv:2,name:'駆け出し絵師',xp:150},{lv:3,name:'一人前絵師',xp:400},{lv:4,name:'熟練絵師',xp:800},{lv:5,name:'上級絵師',xp:1400},{lv:6,name:'伝説の絵師',xp:2200}];
+const XP_STEP=30,XP_POST=100,XP_FB=10,XP_CMD=5;
+const CMDS=[{id:'illust',label:'イラスト制作',icon:'🎨'},{id:'work',label:'仕事・バイト',icon:'💼'},{id:'study',label:'勉強',icon:'📚'},{id:'rest',label:'休憩・遊び',icon:'🎮'},{id:'exercise',label:'運動',icon:'🏃'},{id:'custom',label:'その他',icon:'✏️'}];
+const GOAL_CFG={follower:{label:'フォロワー数',unit:'人',color:'#a070e0'},posts:{label:'投稿数',unit:'投稿',color:'#06b6d4',auto:true},time:{label:'制作時間',unit:'h',color:'#f59e0b',auto:true},likes_x:{label:'X いいね累計',unit:'いいね',color:'#3b82f6',auto:true},likes_pix:{label:'pixiv いいね累計',unit:'いいね',color:'#10b981',auto:true}};
+const KEY='illustquest_v3';
+
+let S=loadState();
+function loadState(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch{}return{xp:0,works:[],goals:[],dayLogs:[],streakDays:0,lastActiveDate:null,profile:{name:'',bio:'',icon:''}};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch{}}
+function todayStr(){return new Date().toDateString();}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function getRank(xp){let r=RANKS[0],nx=RANKS[1];for(let i=RANKS.length-1;i>=0;i--){if(xp>=RANKS[i].xp){r=RANKS[i];nx=RANKS[i+1]||null;break;}}const inLv=xp-r.xp,needed=nx?nx.xp-r.xp:1;return{r,nx,pct:Math.min(100,Math.round(inLv/needed*100))};}
+
+// ===== XP FLOAT EFFECT =====
+function showXpFloat(amt,el){
+  const rect=el?el.getBoundingClientRect():{top:window.innerHeight/2,left:window.innerWidth/2};
+  const div=document.createElement('div');
+  div.className='xp-float';
+  div.textContent='+'+amt+' XP';
+  div.style.left=(rect.left+rect.width/2-30)+'px';
+  div.style.top=(rect.top-10)+'px';
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(),1300);
+}
+
+// ===== STEP BURST EFFECT =====
+function showStepBurst(stepName){
+  const el=document.getElementById('step-effect');
+  el.innerHTML='<div class="step-burst">'+stepName+' 完了！</div>';
+  setTimeout(()=>{
+    const b=el.querySelector('.step-burst');
+    if(b)b.classList.add('out');
+    setTimeout(()=>el.innerHTML='',400);
+  },900);
+}
+
+// ===== CONFETTI =====
+function spawnConfetti(){
+  const wrap=document.getElementById('confetti');
+  wrap.innerHTML='';
+  const colors=['#6c3fff','#ffd700','#ff6b9d','#00d4ff','#10b981','#f59e0b'];
+  for(let i=0;i<40;i++){
+    const c=document.createElement('div');
+    c.className='conf';
+    c.style.cssText='left:'+Math.random()*100+'%;background:'+colors[Math.floor(Math.random()*colors.length)]+';animation-duration:'+(1.5+Math.random()*2)+'s;animation-delay:'+Math.random()*0.5+'s;width:'+(6+Math.random()*8)+'px;height:'+(6+Math.random()*8)+'px;border-radius:'+(Math.random()>0.5?'50%':'2px');
+    wrap.appendChild(c);
+  }
+}
+
+// ===== LEVEL UP =====
+function showLvup(rank){
+  document.getElementById('lvup-rank').textContent=rank.name;
+  document.getElementById('lvup-sub').textContent='LV.'+rank.lv+' に昇格！';
+  spawnConfetti();
+  document.getElementById('lvup-overlay').classList.add('show');
+}
+function closeLvup(){document.getElementById('lvup-overlay').classList.remove('show');}
+
+function addXp(amt,srcEl){
+  const before=getRank(S.xp).r.lv;
+  S.xp=Math.max(0,S.xp+amt);
+  const after=getRank(S.xp);
+  showXpFloat(amt,srcEl);
+  if(after.r.lv>before) setTimeout(()=>showLvup(after.r),300);
+  save();renderHeader();renderStatus();
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);}
+
+function renderHeader(){
+  const info=getRank(S.xp);
+  const p=S.profile||{};
+  document.getElementById('rank-name').textContent=p.name||info.r.name;
+  document.getElementById('lv-badge').textContent='LV.'+info.r.lv;
+  document.getElementById('xp-cur').textContent=S.xp+' XP';
+  document.getElementById('xp-next').textContent=info.nx?'NEXT '+(info.nx.xp-S.xp):'MAX';
+  document.getElementById('xp-fill').style.width=info.pct+'%';
+  const pi=document.getElementById('profile-icon');
+  pi.innerHTML=p.icon?'<img src="'+p.icon+'" alt="icon"/>':'🎨';
+}
+
+let _ti=null,_ts=0,_tr=false;
+function fmt(s){const m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+function startTimer(){if(_tr)return;_tr=true;_ti=setInterval(()=>{_ts++;const d=document.getElementById('timer-display');if(d)d.textContent=fmt(_ts);},1000);}
+function stopTimer(){if(!_tr)return;_tr=false;clearInterval(_ti);}
+function resetTimer(){stopTimer();_ts=0;const d=document.getElementById('timer-display');if(d)d.textContent='00:00';}
+
+function getTodayLog(){const iso=todayISO();let l=S.dayLogs.find(x=>x.date===iso);if(!l){l={date:iso,am:null,pm:null,amMemo:'',pmMemo:'',amLabel:'',pmLabel:''};S.dayLogs.push(l);save();}return l;}
+function isAvail(phase){const h=new Date().getHours();return phase==='am'?h>=6:h>=12;}
+
+function selectCmd(phase,id,label){
+  const log=getTodayLog();
+  const wasSet=log[phase]!==null;
+  if(wasSet)S.xp=Math.max(0,S.xp-XP_CMD);
+  log[phase]=id;
+  log[phase+'Label']=id==='custom'?label:(CMDS.find(c=>c.id===id)?.label||id);
+  S.xp=Math.max(0,S.xp+XP_CMD);
+  updateStreak();save();renderHeader();renderToday();
+  toast(wasSet?(phase==='am'?'午前':'午後')+'コマンドを変更しました':(phase==='am'?'午前':'午後')+'コマンド選択 +'+XP_CMD+'XP');
+}
+
+function changeCmd(phase){
+  const log=getTodayLog();
+  if(log[phase]!==null){S.xp=Math.max(0,S.xp-XP_CMD);log[phase]=null;log[phase+'Label']='';log[phase+'Memo']='';}
+  save();renderHeader();renderToday();
+}
+
+function saveMemo(phase){const log=getTodayLog();const v=document.getElementById('memo-'+phase)?.value||'';log[phase+'Memo']=v;save();toast('メモを保存しました');}
+function promptCustom(phase){const v=prompt('コマンド名を入力してください:');if(v&&v.trim())selectCmd(phase,'custom',v.trim());}
+
+function renderToday(){
+  const el=document.getElementById('today-body');
+  const d=new Date();const log=getTodayLog();
+  const active=S.works.find(w=>!w.posted)||null;
+  const wk=['日','月','火','水','木','金','土'][d.getDay()];
+  let h='<div class="date-hdr"><div class="date-txt">'+d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+'（'+wk+'）</div><div class="day-badge">DAY '+(S.streakDays||1)+'</div></div>';
+
+  ['am','pm'].forEach(phase=>{
+    const lbl=phase==='am'?'午前（6:00〜）':'午後（12:00〜）';
+    const avail=isAvail(phase);const done=log[phase];
+    h+='<div class="cmd-window"><div class="phase-badge"><div class="phase-dot '+phase+'"></div>'+lbl+'</div>';
+    if(!avail){h+='<div class="locked-msg">🔒 まだ選択できません</div>';}
+    else if(!done){
+      h+='<div class="cmd-grid">';
+      CMDS.forEach(c=>{h+='<div class="cmd-btn'+(c.id==='custom'?' cmd-full':'')+'" onclick="'+(c.id==='custom'?'promptCustom(\''+phase+'\')':'selectCmd(\''+phase+'\',\''+c.id+'\')')+'"><span style="font-size:18px;width:22px">'+c.icon+'</span>'+c.label+'</div>';});
+      h+='</div>';
+    } else {
+      const memo=log[phase+'Memo']||'';
+      h+='<div class="cmd-done-row"><span class="cmd-done-label">✅ '+esc(log[phase+'Label']||done)+'</span><button class="cmd-change-btn" onclick="changeCmd(\''+phase+'\')">変更</button></div>';
+      h+='<textarea class="memo-inp" id="memo-'+phase+'" rows="2" placeholder="詳細メモ（XPなし）">'+esc(memo)+'</textarea>';
+      h+='<button class="memo-save-btn" onclick="saveMemo(\''+phase+'\')">メモを保存</button>';
+    }
+    h+='</div>';
+  });
+
+  h+='<div class="sec">今日の制作</div>';
+  if(!active){h+='<div class="empty"><div class="empty-icon">🎨</div><p>「作品」タブからイラストを追加して<br>制作を始めよう</p></div>';}
+  else{
+    const isPost=active.stepIdx===STEPS.length-1;
+    const stH=STEPS.map((_,i)=>'<div class="step '+(i<active.stepIdx?'done':i===active.stepIdx?'cur':'')+'"></div>').join('');
+    h+='<div class="gcard primary"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px"><div style="font-size:16px;font-weight:900">'+esc(active.title)+'</div><div class="step-badge">'+STEPS[active.stepIdx]+'</div></div><div class="steps">'+stH+'</div><div style="font-size:10px;color:var(--text3);font-weight:800;letter-spacing:1px;margin-bottom:12px">STEP '+(active.stepIdx+1)+' / '+STEPS.length+'</div>';
+    if(!isPost){
+      h+='<div class="timer-row"><div id="timer-display">00:00</div><button class="t-btn" onclick="startTimer()">▶</button><button class="t-btn" onclick="stopTimer()">■</button><button class="t-btn" onclick="resetTimer()">↺</button></div>';
+      h+='<div class="time-manual"><span>手動入力:</span><input class="t-inp" id="manual-h" type="number" min="0" max="23" value="0"/><span>時間</span><input class="t-inp" id="manual-m" type="number" min="0" max="59" value="0"/><span>分</span></div>';
+      h+='<button class="act-btn" id="complete-step-btn" onclick="completeStep(\''+active.id+'\')">✨ '+STEPS[active.stepIdx]+' を完了　+'+XP_STEP+'XP</button>';
+    } else {
+      h+='<div class="form-g"><label class="lbl">投稿先</label><div class="check-row"><input type="checkbox" id="post-x"/><label for="post-x">X (Twitter)</label></div><div class="check-row"><input type="checkbox" id="post-pix"/><label for="post-pix">pixiv</label></div></div>';
+      h+='<div class="form-row" style="gap:8px;margin-bottom:10px"><div style="flex:1"><label class="lbl">X いいね</label><input class="inp" id="likes-x" type="number" placeholder="0"/></div><div style="flex:1"><label class="lbl">pixiv いいね</label><input class="inp" id="likes-pix" type="number" placeholder="0"/></div></div>';
+      h+='<div class="form-g"><label class="lbl">X 投稿URL</label><input class="inp" id="url-x" placeholder="https://x.com/..."/></div>';
+      h+='<div class="form-g"><label class="lbl">pixiv 投稿URL</label><input class="inp" id="url-pix" placeholder="https://www.pixiv.net/..."/></div>';
+      h+='<div class="form-row" style="gap:8px;margin-bottom:10px"><div style="flex:1"><label class="lbl">フォロワー数（X）</label><input class="inp" id="fw-x" type="number" placeholder="現在値"/></div><div style="flex:1"><label class="lbl">フォロワー数（pixiv）</label><input class="inp" id="fw-pix" type="number" placeholder="現在値"/></div></div>';
+      h+='<button class="act-btn green" onclick="completePost(\''+active.id+'\')">🎉 投稿完了！　+'+XP_POST+'XP</button>';
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  const td=document.getElementById('timer-display');if(td)td.textContent=fmt(_ts);
+}
+
+function updateStreak(){const t=todayStr();if(S.lastActiveDate===t)return;const y=new Date();y.setDate(y.getDate()-1);S.streakDays=S.lastActiveDate===y.toDateString()?(S.streakDays||0)+1:1;S.lastActiveDate=t;}
+
+function completeStep(id){
+  const w=S.works.find(x=>x.id===id);if(!w||w.stepIdx>=STEPS.length-1)return;
+  const hh=parseInt(document.getElementById('manual-h')?.value)||0;
+  const mm=parseInt(document.getElementById('manual-m')?.value)||0;
+  const min=hh*60+mm>0?hh*60+mm:Math.floor(_ts/60);
+  w.timeLog=w.timeLog||[];w.timeLog.push({step:STEPS[w.stepIdx],min,date:todayISO()});
+  w.totalMin=(w.totalMin||0)+min;
+  const stepDone=STEPS[w.stepIdx];
+  w.stepIdx++;
+  resetTimer();updateStreak();
+  showStepBurst(stepDone);
+  const btn=document.getElementById('complete-step-btn');
+  addXp(XP_STEP,btn);
+  save();
+  setTimeout(()=>{renderToday();renderWorks();},200);
+}
+
+function completePost(id){
+  const w=S.works.find(x=>x.id===id);if(!w)return;
+  const pl=[];if(document.getElementById('post-x')?.checked)pl.push('X');if(document.getElementById('post-pix')?.checked)pl.push('pixiv');
+  w.posted=true;w.postedDate=todayISO();w.platforms=pl;
+  w.likesX=parseInt(document.getElementById('likes-x')?.value)||0;
+  w.likesPix=parseInt(document.getElementById('likes-pix')?.value)||0;
+  w.urlX=document.getElementById('url-x')?.value.trim()||'';
+  w.urlPix=document.getElementById('url-pix')?.value.trim()||'';
+  w.fwX=parseInt(document.getElementById('fw-x')?.value)||0;
+  w.fwPix=parseInt(document.getElementById('fw-pix')?.value)||0;
+  updateStreak();
+  addXp(XP_POST);
+  save();renderToday();renderWorks();renderRecord();renderGoals();
+}
+
+function renderWorks(){
+  const list=document.getElementById('work-list'),empty=document.getElementById('work-empty');
+  if(!S.works.length){list.innerHTML='';empty.style.display='';return;}empty.style.display='none';
+  list.innerHTML=S.works.map(w=>'<div class="work-item'+(w.posted?' posted':'')+'" onclick="openModal(\''+w.id+'\')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font-size:13px;font-weight:900;margin-bottom:6px">'+esc(w.title)+'</div><div class="step-badge'+(w.posted?' posted':'')+'">'+( w.posted?'投稿済':STEPS[w.stepIdx])+'</div></div><div style="display:flex;gap:8px;font-size:10px;color:var(--text3);font-weight:700"><span>'+(w.postedDate||w.createdDate)+'</span>'+(w.totalMin?'<span>'+Math.floor(w.totalMin/60)+'h'+w.totalMin%60+'m</span>':'')+'</div><div class="steps" style="margin:8px 0 0">'+STEPS.map((_,i)=>'<div class="step '+(i<w.stepIdx||w.posted?'done':i===w.stepIdx?'cur':'')+'"></div>').join('')+'</div></div>').join('');
+}
+
+function addWork(){const inp=document.getElementById('work-input');const t=inp.value.trim();if(!t)return;S.works.unshift({id:Date.now()+'',title:t,stepIdx:0,createdDate:todayISO(),timeLog:[],totalMin:0,feedbacks:[],posted:false});inp.value='';save();renderWorks();renderToday();toast('作品を追加しました！');}
+document.getElementById('work-add').addEventListener('click',addWork);
+document.getElementById('work-input').addEventListener('keydown',e=>{if(e.key==='Enter')addWork();});
+
+function openModal(id){
+  const w=S.works.find(x=>x.id===id);if(!w)return;
+  document.getElementById('modal-title').textContent=w.title;
+  const fbH=w.feedbacks?.length?w.feedbacks.map(f=>'<div class="fb-item"><div class="fb-date">'+f.date+'</div><div class="fb-text">'+esc(f.text)+'</div></div>').join(''):'<p style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:700">まだコメントはありません</p>';
+  const tH=w.timeLog?.length?w.timeLog.map(t=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:5px 0;border-bottom:2px solid var(--border);font-weight:700"><span>'+t.step+'</span><span>'+Math.floor(t.min/60)+'h'+t.min%60+'m</span></div>').join(''):'<p style="font-size:11px;color:var(--text3);font-weight:700">記録なし</p>';
+  let b='<div style="margin-bottom:12px"><div class="sec">進捗</div><div class="steps">'+STEPS.map((_,i)=>'<div class="step '+(i<w.stepIdx||w.posted?'done':i===w.stepIdx?'cur':'')+'"></div>').join('')+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px;font-weight:700">'+(w.posted?'投稿済み':STEPS[w.stepIdx])+'</div></div>';
+  b+='<div style="margin-bottom:12px"><div class="sec">制作時間</div>'+tH+(w.totalMin?'<div style="font-size:12px;color:var(--primary);margin-top:6px;font-weight:900">合計 '+Math.floor(w.totalMin/60)+'h'+w.totalMin%60+'m</div>':'')+'</div>';
+  if(w.posted){
+    b+='<div style="margin-bottom:12px"><div class="sec">投稿情報</div><div style="font-size:11px;color:var(--text2);line-height:2;font-weight:700">日付: '+w.postedDate+' · '+(w.platforms?.join(' / ')||'-')+'<br>X ♥'+(w.likesX||0)+' / pixiv ♥'+(w.likesPix||0)+'</div>'+(w.urlX?'<a href="'+esc(w.urlX)+'" target="_blank" class="url-link">X: '+esc(w.urlX)+'</a>':'')+(w.urlPix?'<a href="'+esc(w.urlPix)+'" target="_blank" class="url-link">pixiv: '+esc(w.urlPix)+'</a>':'')+'</div>';
+    b+='<div style="margin-bottom:12px"><div class="sec">いいね数を更新</div><div class="form-row" style="gap:8px;margin-bottom:8px"><div style="flex:1"><label class="lbl">X</label><input class="inp" id="upd-lx" type="number" value="'+(w.likesX||0)+'"/></div><div style="flex:1"><label class="lbl">pixiv</label><input class="inp" id="upd-lpix" type="number" value="'+(w.likesPix||0)+'"/></div></div><button class="act-btn sm ghost" onclick="updateLikes(\''+id+'\')">更新</button></div>';
+    b+='<div style="margin-bottom:12px"><div class="sec">ふりかえり</div>'+fbH+'<textarea class="inp" id="fb-inp" rows="3" placeholder="次に活かしたいことをメモ..." style="resize:vertical;margin-top:6px"></textarea><button class="act-btn sm" style="margin-top:6px" onclick="addFeedback(\''+id+'\')">追加 +'+XP_FB+'XP</button></div>';
+  } else {b+='<p style="font-size:11px;color:var(--text3);margin-bottom:12px;font-weight:700">投稿後にふりかえりを追加できます</p>';}
+  b+='<div style="padding-top:12px;border-top:2px solid var(--border)"><button class="del-btn" onclick="deleteWork(\''+id+'\')">この作品を削除</button></div>';
+  document.getElementById('modal-body').innerHTML=b;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function updateLikes(id){const w=S.works.find(x=>x.id===id);if(!w)return;w.likesX=parseInt(document.getElementById('upd-lx')?.value)||0;w.likesPix=parseInt(document.getElementById('upd-lpix')?.value)||0;save();renderRecord();renderGoals();openModal(id);toast('いいね数を更新しました！');}
+function addFeedback(id){const t=document.getElementById('fb-inp')?.value.trim();if(!t)return;const w=S.works.find(x=>x.id===id);if(!w)return;w.feedbacks=w.feedbacks||[];w.feedbacks.push({text:t,date:todayISO()});addXp(XP_FB);save();openModal(id);toast('ふりかえり追加 +'+XP_FB+'XP');}
+function deleteWork(id){if(!confirm('削除しますか？'))return;S.works=S.works.filter(x=>x.id!==id);save();renderWorks();renderToday();renderRecord();document.getElementById('modal-overlay').classList.remove('open');}
+document.getElementById('modal-close').addEventListener('click',()=>document.getElementById('modal-overlay').classList.remove('open'));
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target.id==='modal-overlay')document.getElementById('modal-overlay').classList.remove('open');});
+
+function onGoalTypeChange(){const t=document.getElementById('g-type').value;const c=GOAL_CFG[t];document.getElementById('g-target-lbl').textContent='目標値（'+c.unit+'）';document.getElementById('g-current-lbl').textContent='現在の値（'+c.unit+'）';document.getElementById('g-current-group').style.display=c.auto?'none':'';}
+function getGoalCur(g){const p=S.works.filter(w=>w.posted);switch(g.type){case 'follower':return g.currentVal||0;case 'posts':return p.length;case 'time':return Math.floor(S.works.reduce((a,w)=>a+(w.totalMin||0),0)/60);case 'likes_x':return p.reduce((a,w)=>a+(w.likesX||0),0);case 'likes_pix':return p.reduce((a,w)=>a+(w.likesPix||0),0);default:return 0;}}
+document.getElementById('g-save').addEventListener('click',()=>{const type=document.getElementById('g-type').value;const target=parseInt(document.getElementById('g-target').value)||0;if(!target){toast('目標値を入力してください');return;}S.goals=S.goals||[];S.goals.push({id:Date.now()+'',type,name:document.getElementById('g-name').value.trim(),target,currentVal:parseInt(document.getElementById('g-current').value)||0,deadline:document.getElementById('g-deadline').value});['g-name','g-target','g-current','g-deadline'].forEach(id=>document.getElementById(id).value='');save();renderGoals();toast('目標を追加しました！');});
+
+function renderGoals(){
+  S.goals=S.goals||[];const list=document.getElementById('goal-list'),empty=document.getElementById('goal-empty');
+  if(!S.goals.length){list.innerHTML='';empty.style.display='';return;}empty.style.display='none';
+  const now=new Date();now.setHours(0,0,0,0);
+  list.innerHTML=S.goals.map(g=>{const c=GOAL_CFG[g.type];const cur=getGoalCur(g);const pct=Math.min(100,Math.round(cur/g.target*100));const dl=g.deadline?Math.ceil((new Date(g.deadline)-now)/86400000):null;return '<div class="goal-item"><div style="font-size:10px;font-weight:900;letter-spacing:1px;padding:3px 10px;border-radius:99px;display:inline-block;margin-bottom:8px;background:'+c.color+'20;color:'+c.color+';border:2px solid '+c.color+'">'+c.label+'</div>'+(g.name?'<div style="font-size:13px;font-weight:900;margin-bottom:6px">'+esc(g.name)+'</div>':'')+'<div class="g-meta"><span>'+cur+' / '+g.target+' '+c.unit+'</span><span style="font-weight:900;color:'+c.color+'">'+pct+'%</span></div><div class="g-track"><div class="g-fill" style="width:'+pct+'%;background:'+c.color+'"></div></div>'+(dl!==null?'<div style="font-size:10px;margin-top:5px;font-weight:800;color:'+(dl<=3?'var(--red)':'var(--text3)')+'">'+(dl>0?'残り'+dl+'日':dl===0?'今日が締切！':'期限超過'+Math.abs(dl)+'日')+'</div>':'')+'<button onclick="deleteGoal(\''+g.id+'\')" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;margin-top:8px;font-weight:700">削除</button></div>';}).join('');
+}
+function deleteGoal(id){S.goals=S.goals.filter(g=>g.id!==id);save();renderGoals();}
+
+function renderRecord(){
+  const posted=S.works.filter(w=>w.posted).sort((a,b)=>b.postedDate.localeCompare(a.postedDate));
+  const list=document.getElementById('record-list'),empty=document.getElementById('record-empty');
+  if(!posted.length){list.innerHTML='';empty.style.display='';return;}empty.style.display='none';
+  list.innerHTML=posted.map(w=>'<div class="rec-item" onclick="openModal(\''+w.id+'\')"><div style="font-size:13px;font-weight:900;margin-bottom:4px">'+esc(w.title)+'</div><div style="display:flex;gap:8px;font-size:10px;color:var(--text3);margin-bottom:6px;flex-wrap:wrap;font-weight:700"><span>'+w.postedDate+'</span>'+(w.platforms?.includes('X')?'<span style="color:var(--blue)">X</span>':'')+(w.platforms?.includes('pixiv')?'<span style="color:#a070e0">pixiv</span>':'')+(w.totalMin?'<span>制作'+Math.floor(w.totalMin/60)+'h'+w.totalMin%60+'m</span>':'')+'</div><div class="score-row">'+((w.likesX||w.urlX)?'<div class="score-chip" style="color:var(--blue)">X ♥ '+(w.likesX||0)+'</div>':'')+((w.likesPix||w.urlPix)?'<div class="score-chip" style="color:#a070e0">pix ♥ '+(w.likesPix||0)+'</div>':'')+(w.feedbacks?.length?'<div class="score-chip" style="color:var(--primary)">💬 '+w.feedbacks.length+'</div>':'')+'</div>'+(w.urlX?'<div class="url-link">🔗 '+esc(w.urlX)+'</div>':'')+(w.urlPix?'<div class="url-link">🔗 '+esc(w.urlPix)+'</div>':'')+'</div>').join('');
+}
+
+function renderStatus(){
+  const info=getRank(S.xp);
+  document.getElementById('s-rank').textContent=info.r.name;
+  document.getElementById('s-sub').textContent='LV.'+info.r.lv+' · '+S.xp+' XP';
+  document.getElementById('s-xp-bar').style.width=info.pct+'%';
+  const posted=S.works.filter(w=>w.posted);
+  const totalMin=S.works.reduce((a,w)=>a+(w.totalMin||0),0);
+  document.getElementById('s-posts').textContent=posted.length;
+  document.getElementById('s-works').textContent=S.works.length;
+  document.getElementById('s-days').textContent=(S.streakDays||0)+'日';
+  document.getElementById('s-time').textContent=Math.floor(totalMin/60)+'h';
+  const tlx=posted.reduce((a,w)=>a+(w.likesX||0),0);
+  const tlp=posted.reduce((a,w)=>a+(w.likesPix||0),0);
+  const mxfw=posted.length?Math.max(0,...posted.filter(w=>w.fwX).map(w=>w.fwX)):0;
+  const ach=[{icon:'🖼️',title:posted.length+' 枚投稿',sub:'累計投稿数'},{icon:'⏱️',title:Math.floor(totalMin/60)+' 時間制作',sub:'累計制作時間'},{icon:'💙',title:'X ♥ '+tlx,sub:'累計いいね（X）'},{icon:'💜',title:'pixiv ♥ '+tlp,sub:'累計いいね（pixiv）'},{icon:'🔥',title:(S.streakDays||0)+' 日連続',sub:'現在の継続日数'}];
+  if(mxfw)ach.push({icon:'👥',title:'フォロワー '+mxfw+' 人',sub:'最新のX フォロワー数'});
+  document.getElementById('achievements').innerHTML=ach.map(a=>'<div class="achieve-item"><div class="achieve-icon">'+a.icon+'</div><div><div class="achieve-title">'+a.title+'</div><div class="achieve-sub">'+a.sub+'</div></div></div>').join('');
+  document.getElementById('rank-table').innerHTML=RANKS.map(r=>{const u=S.xp>=r.xp,c=r.lv===info.r.lv;return '<div class="rank-row" style="opacity:'+(u?1:0.3)+'"><div style="display:flex;gap:10px;align-items:center"><span style="font-size:10px;color:var(--text3);width:32px;font-weight:800">LV.'+r.lv+'</span><span style="font-size:13px;font-weight:'+(c?900:700)+';color:'+(c?'var(--primary)':'var(--text)')+'">'+r.name+(c?' ◀':'')+'</span></div><span style="font-size:10px;color:var(--text3);font-weight:800">'+r.xp+' XP</span></div>';}).join('');
+  const recent=[...S.dayLogs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
+  document.getElementById('day-log-list').innerHTML=recent.length?recent.map(l=>'<div class="day-log"><div class="day-log-date">'+l.date+'</div><div class="phase-entry"><span class="phase-lbl" style="color:var(--cyan)">AM</span><div class="phase-content"><div>'+(l.am?esc(l.amLabel||l.am):'—')+'</div>'+(l.amMemo?'<div class="phase-memo">'+esc(l.amMemo)+'</div>':'')+'</div></div><div class="phase-entry"><span class="phase-lbl" style="color:var(--pink)">PM</span><div class="phase-content"><div>'+(l.pm?esc(l.pmLabel||l.pm):'—')+'</div>'+(l.pmMemo?'<div class="phase-memo">'+esc(l.pmMemo)+'</div>':'')+'</div></div></div>').join(''):'<div class="empty"><p>ログはまだありません</p></div>';
+}
+
+function openProfile(){const p=S.profile||{};document.getElementById('profile-name').value=p.name||'';document.getElementById('profile-bio').value=p.bio||'';document.getElementById('profile-preview').innerHTML=p.icon?'<img src="'+p.icon+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>':'🎨';document.getElementById('profile-modal').classList.add('open');}
+function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
+function saveProfile(){S.profile=S.profile||{};S.profile.name=document.getElementById('profile-name').value.trim();S.profile.bio=document.getElementById('profile-bio').value.trim();save();renderHeader();closeProfile();toast('プロフィールを保存しました！');}
+function onIconUpload(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{S.profile=S.profile||{};S.profile.icon=ev.target.result;save();renderHeader();document.getElementById('profile-preview').innerHTML='<img src="'+ev.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>';};r.readAsDataURL(file);}
+
+document.getElementById('nav').addEventListener('click',e=>{const btn=e.target.closest('.nav-btn');if(!btn)return;const tab=btn.dataset.tab;document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+tab));if(tab==='today')renderToday();if(tab==='goals')renderGoals();if(tab==='record')renderRecord();if(tab==='status')renderStatus();});
+
+function scheduleNotif(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='default')Notification.requestPermission();
+  setInterval(()=>{
+    if(Notification.permission!=='granted')return;
+    const h=new Date().getHours(),m=new Date().getMinutes();
+    const log=getTodayLog();
+    if(h===6&&m===0&&!log.am)new Notification('ILLUST QUEST',{body:'☀ 午前のコマンドを選択しよう！',icon:'icon-192.png'});
+    if(h===12&&m===0&&!log.pm)new Notification('ILLUST QUEST',{body:'🌞 午後のコマンドを選択しよう！',icon:'icon-192.png'});
+    if(h===9&&m===0)(S.goals||[]).forEach(g=>{if(!g.deadline)return;const d=new Date();d.setHours(0,0,0,0);const days=Math.ceil((new Date(g.deadline)-d)/86400000);if(days===3||days===1){const name=g.name||GOAL_CFG[g.type]?.label||'目標';new Notification('ILLUST QUEST',{body:'⚠ 「'+name+'」締切まで残り'+days+'日！',icon:'icon-192.png'});}});
+  },60000);
+}
+
+S.profile=S.profile||{name:'',bio:'',icon:''};S.goals=S.goals||[];
+onGoalTypeChange();renderHeader();renderToday();renderWorks();renderGoals();renderRecord();renderStatus();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+scheduleNotif();
+</script>
+</body>
+</html>
