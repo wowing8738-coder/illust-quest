@@ -2,7 +2,7 @@
   "name": "ILLUST QUEST",
   "short_name": "ILLUST QUEST",
   "description": "イラスト投稿のモチベ・進捗管理アプリ",
-  "start_url": "/",
+  "start_url": "/illust-quest/",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
