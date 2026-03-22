@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>ILLUST QUEST</title>
+<meta name="theme-color" content="#0f0f0f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="ILLUST QUEST"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--bg2:#181818;--bg3:#222;--border:#2a2a2a;--border2:#333;
+  --text:#f0ede6;--text2:#888;--text3:#555;
+  --accent:#c8a96e;--accent2:#a08040;--accent-dim:#2a2010;
+  --green:#4a9e6a;--green-dim:#0d2418;
+  --red:#c05050;--red-dim:#2a0d0d;
+  --blue:#5090c8;--blue-dim:#0d1e2e;
+  --purple:#9070c8;--purple-dim:#1a1030;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif}
+body{display:flex;justify-content:center}
+#app{width:100%;max-width:480px;min-height:100vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+
+/* Toast */
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--accent);color:#0f0f0f;padding:10px 24px;border-radius:99px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Header */
+#header{padding:24px 20px 0;border-bottom:1px solid var(--border)}
+.header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+#app-name{font-size:10px;letter-spacing:3px;color:var(--text3);font-weight:500}
+#rank-line{font-size:20px;font-weight:700;letter-spacing:-0.5px;color:var(--text)}
+#lv-badge{background:var(--accent);color:#0f0f0f;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:800;letter-spacing:1px}
+.xp-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px}
+.xp-track{height:3px;background:var(--bg3);border-radius:99px;margin-bottom:16px}
+.xp-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* Nav */
+#nav{display:flex;border-bottom:1px solid var(--border)}
+.nav-btn{flex:1;padding:12px 0;background:none;border:none;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:1px;transition:color .2s;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px}
+.nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Content */
+#content{flex:1;overflow-y:auto;padding:20px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* Section label */
+.sec{font-size:10px;letter-spacing:2px;color:var(--text3);font-weight:600;margin-bottom:10px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px}
+.card-row{display:flex;align-items:center;gap:12px}
+
+/* Buttons */
+.btn{padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;letter-spacing:.5px}
+.btn-accent{background:var(--accent);color:#0f0f0f}
+.btn-accent:hover{background:var(--accent2)}
+.btn-outline{background:none;border:1px solid var(--border2);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+
+/* Input */
+.inp{width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--text3)}
+.inp-row{display:flex;gap:8px;margin-bottom:14px}
+label.lbl{font-size:12px;color:var(--text2);display:block;margin-bottom:5px}
+
+/* Steps progress */
+.steps{display:flex;gap:4px;margin:12px 0}
+.step{flex:1;height:4px;background:var(--bg3);border-radius:99px;transition:background .3s}
+.step.done{background:var(--accent)}
+.step.current{background:var(--accent);opacity:.5}
+
+/* Today panel */
+#today-date{font-size:12px;color:var(--text3);margin-bottom:16px}
+#today-illust-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+.illust-title-lg{font-size:17px;font-weight:700;margin-bottom:4px}
+.step-name-badge{display:inline-block;background:var(--accent-dim);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:12px}
+.step-nav{display:flex;gap:8px;align-items:center}
+.step-nav-btn{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--text2);padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
+.step-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.step-nav-btn.complete{background:var(--accent);color:#0f0f0f;border-color:var(--accent);font-weight:700}
+
+/* Timer */
+#timer-box{background:var(--bg3);border-radius:10px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px}
+#timer-display{font-size:28px;font-weight:700;letter-spacing:2px;color:var(--accent);font-variant-numeric:tabular-nums;flex:1}
+.timer-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.timer-start{background:var(--green-dim);color:var(--green)}
+.timer-stop{background:var(--red-dim);color:var(--red)}
+.timer-reset{background:var(--bg2);color:var(--text3)}
+
+/* Time manual input */
+.time-manual{display:flex;gap:8px;align-items:center;margin-top:10px}
+.time-manual span{font-size:12px;color:var(--text3)}
+.time-inp{width:56px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:inherit;outline:none;text-align:center}
+.time-inp:focus{border-color:var(--accent)}
+
+/* No illust state */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state .big{font-size:32px;margin-bottom:8px}
+.empty-state p{font-size:13px;line-height:1.7}
+
+/* Works list */
+.work-item{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
+.work-item:hover{border-color:var(--border2)}
+.work-item.posted{opacity:.5}
+.work-title{font-size:14px;font-weight:600;margin-bottom:6px}
+.work-meta{display:flex;gap:10px;font-size:11px;color:var(--text3)}
+.work-step-badge{font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:4px;background:var(--accent-dim);color:var(--accent)}
+.work-step-badge.posted{background:var(--green-dim);color:var(--green)}
+
+/* Work detail modal */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;overflow-y:auto;padding:20px}
+#modal-overlay.open{display:block}
+#modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:440px;margin:0 auto;padding:20px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.close-btn{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1;padding:0}
+
+/* Feedback */
+.fb-item{background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:8px}
+.fb-date{font-size:11px;color:var(--text3);margin-bottom:4px}
+.fb-text{font-size:13px;line-height:1.6;color:var(--text2)}
+.fb-input-area{margin-top:12px}
+
+/* Goal */
+.goal-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px}
+.goal-title{font-size:14px;font-weight:700;margin-bottom:8px}
+.goal-meta{font-size:12px;color:var(--text3);margin-bottom:10px}
+.progress-track{height:6px;background:var(--bg3);border-radius:99px}
+.progress-fill{height:100%;border-radius:99px;transition:width .8s}
+.progress-fill.follower{background:var(--purple)}
+.progress-fill.deadline{background:var(--accent)}
+.days-left{font-size:11px;color:var(--text3);margin-top:5px}
+.days-left.urgent{color:var(--red)}
+
+/* Status */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.stat-num{font-size:26px;font-weight:700;color:var(--accent)}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:3px}
+#rank-card-big{background:var(--bg2);border:1px solid var(--accent-dim);border-radius:14px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+#rank-card-big::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:var(--accent-dim);opacity:.5}
+.rank-label{font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:4px}
+.rank-name-big{font-size:26px;font-weight:800;color:var(--accent);letter-spacing:-1px}
+.rank-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.ability-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ability-name{font-size:12px;color:var(--text2);width:80px}
+.ability-track{flex:1;height:4px;background:var(--bg3);border-radius:99px;margin:0 10px}
+.ability-fill{height:100%;border-radius:99px;transition:width .8s}
+.ability-val{font-size:12px;color:var(--text);width:36px;text-align:right;font-weight:600}
+
+/* Record posted */
+.record-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.record-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.record-meta{display:flex;gap:8px;font-size:11px;color:var(--text3);flex-wrap:wrap}
+.record-badge{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
+.rb-x{background:#1a1e2a;color:#6090e8}
+.rb-pix{background:#1a1020;color:#b070e8}
+
+/* Form group */
+.form-group{margin-bottom:14px}
+.form-row{display:flex;gap:8px}
+select.inp{appearance:none}
+
+</style>
+</head>
+<body>
+<div id="app">
+<div id="toast"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="header-row">
+    <div>
+      <div id="app-name">ILLUST QUEST</div>
+      <div id="rank-line">見習い絵師</div>
+    </div>
+    <div id="lv-badge">Lv.1</div>
+  </div>
+  <div class="xp-row">
+    <span id="xp-cur">0 XP</span>
+    <span id="xp-next">次まで 100 XP</span>
+  </div>
+  <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+</div>
+
+<!-- NAV -->
+<div id="nav">
+  <button class="nav-btn active" data-tab="today">TODAY</button>
+  <button class="nav-btn" data-tab="works">作品</button>
+  <button class="nav-btn" data-tab="goals">目標</button>
+  <button class="nav-btn" data-tab="record">記録</button>
+  <button class="nav-btn" data-tab="status">STATUS</button>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
+
+  <!-- TODAY -->
+  <div class="panel active" id="panel-today">
+    <div id="today-date"></div>
+    <div id="today-main"></div>
+  </div>
+
+  <!-- WORKS -->
+  <div class="panel" id="panel-works">
+    <div class="sec">制作中 / 完成</div>
+    <div class="inp-row">
+      <input class="inp" id="work-input" placeholder="新しいイラストのタイトル..."/>
+      <button class="btn btn-accent" id="work-add">+</button>
+    </div>
+    <div id="work-list"></div>
+    <div class="empty-state" id="work-empty" style="display:none">
+      <div class="big">✏</div>
+      <p>イラストを追加しましょう</p>
+    </div>
+  </div>
+
+  <!-- GOALS -->
+  <div class="panel" id="panel-goals">
+    <div class="sec">目標</div>
+    <div id="goal-form" class="card" style="margin-bottom:16px">
+      <div class="form-group">
+        <label class="lbl">フォロワー目標</label>
+        <div class="form-row">
+          <input class="inp" id="g-follower" type="number" placeholder="例: 1000" style="flex:1"/>
+          <span style="align-self:center;font-size:12px;color:var(--text3);white-space:nowrap">人</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="lbl">現在のフォロワー数</label>
+        <input class="inp" id="g-follower-now" type="number" placeholder="例: 320"/>
+      </div>
+      <div class="form-group">
+        <label class="lbl">締切イベント名</label>
+        <input class="inp" id="g-event" placeholder="例: 推しの誕生日"/>
+      </div>
+      <div class="form-group">
+        <label class="lbl">締切日</label>
+        <input class="inp" id="g-deadline" type="date"/>
+      </div>
+      <button class="btn btn-accent" style="width:100%" id="g-save">目標を保存</button>
+    </div>
+    <div id="goal-display"></div>
+  </div>
+
+  <!-- RECORD -->
+  <div class="panel" id="panel-record">
+    <div class="sec">投稿記録</div>
+    <div id="record-list"></div>
+    <div class="empty-state" id="record-empty">
+      <div class="big">📮</div>
+      <p>投稿済みイラストの記録が<br>ここに表示されます</p>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="panel" id="panel-status">
+    <div id="rank-card-big">
+      <div class="rank-label">CURRENT RANK</div>
+      <div class="rank-name-big" id="s-rank">見習い絵師</div>
+      <div class="rank-sub" id="s-sub">Lv.1 · 0 XP</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="s-posts">0</div><div class="stat-lbl">投稿数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-works">0</div><div class="stat-lbl">制作作品数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-days">0</div><div class="stat-lbl">継続日数</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-time">0h</div><div class="stat-lbl">総制作時間</div></div>
+    </div>
+    <div class="sec">能力値</div>
+    <div class="card">
+      <div id="abilities"></div>
+    </div>
+    <div class="sec" style="margin-top:16px">ランクテーブル</div>
+    <div class="card" id="rank-table"></div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div class="modal-title">
+      <span id="modal-work-title">作品詳細</span>
+      <button class="close-btn" id="modal-close">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const STEPS = ['ラフスケッチ','下書き','線画','彩色','投稿'];
+const RANKS = [
+  {lv:1,name:'見習い絵師',xp:0},
+  {lv:2,name:'駆け出し絵師',xp:150},
+  {lv:3,name:'一人前絵師',xp:400},
+  {lv:4,name:'熟練絵師',xp:800},
+  {lv:5,name:'上級絵師',xp:1400},
+  {lv:6,name:'伝説の絵師',xp:2200},
+];
+const XP={step:30,post:100,feedback:10};
+const KEY='illustquest_v1';
+
+let state = load();
+
+function load(){
+  try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch{}
+  return {xp:0,works:[],goal:null,streakDays:0,lastActiveDate:null};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}}
+
+function today(){return new Date().toDateString();}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ===== RANK =====
+function getRank(xp){
+  let r=RANKS[0],nx=RANKS[1];
+  for(let i=RANKS.length-1;i>=0;i--){if(xp>=RANKS[i].xp){r=RANKS[i];nx=RANKS[i+1]||null;break;}}
+  const inLv=xp-r.xp, needed=nx?nx.xp-r.xp:1;
+  return {r,nx,pct:Math.min(100,Math.round(inLv/needed*100))};
+}
+
+// ===== XP =====
+function addXp(amt){
+  const before=getRank(state.xp).r.lv;
+  state.xp+=amt;
+  const after=getRank(state.xp);
+  if(after.r.lv>before) setTimeout(()=>toast(`✦ ${after.r.name} に昇格！`),200);
+  save();renderHeader();renderStatus();
+}
+
+// ===== TOAST =====
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ===== HEADER =====
+function renderHeader(){
+  const info=getRank(state.xp);
+  document.getElementById('rank-line').textContent=info.r.name;
+  document.getElementById('lv-badge').textContent=`Lv.${info.r.lv}`;
+  document.getElementById('xp-cur').textContent=`${state.xp} XP`;
+  document.getElementById('xp-next').textContent=info.nx?`次まで ${info.nx.xp-state.xp} XP`:'MAX';
+  document.getElementById('xp-fill').style.width=info.pct+'%';
+}
+
+// ===== TIMER =====
+let timerInterval=null, timerSec=0, timerRunning=false;
+function fmtTime(s){const m=Math.floor(s/60),ss=s%60;return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;}
+function startTimer(){if(timerRunning)return;timerRunning=true;timerInterval=setInterval(()=>{timerSec++;document.getElementById('timer-display').textContent=fmtTime(timerSec);},1000);}
+function stopTimer(){if(!timerRunning)return;timerRunning=false;clearInterval(timerInterval);}
+function resetTimer(){stopTimer();timerSec=0;const d=document.getElementById('timer-display');if(d)d.textContent='00:00';}
+
+// ===== TODAY =====
+function renderToday(){
+  const el=document.getElementById('today-main');
+  const dateEl=document.getElementById('today-date');
+  const d=new Date();
+  dateEl.textContent=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 (${['日','月','火','水','木','金','土'][d.getDay()]}) · ターン${getTurnNum()}日目`;
+
+  // find active work (not posted, or first in-progress)
+  const active=state.works.find(w=>w.stepIdx<STEPS.length-1)||state.works.find(w=>w.stepIdx===STEPS.length-1&&!w.posted);
+
+  if(!active){
+    el.innerHTML=`
+      <div class="empty-state">
+        <div class="big">🎨</div>
+        <p>「作品」タブからイラストを<br>追加してターンを始めよう</p>
+      </div>`;
+    return;
+  }
+
+  const stepName=STEPS[active.stepIdx];
+  const stepsHTML=STEPS.map((s,i)=>`<div class="step ${i<active.stepIdx?'done':i===active.stepIdx?'current':''}"></div>`).join('');
+  const isPosting=active.stepIdx===STEPS.length-1;
+
+  el.innerHTML=`
+    <div id="today-illust-card">
+      <div class="illust-title-lg">${esc(active.title)}</div>
+      <div class="step-name-badge">${stepName}</div>
+      <div class="steps">${stepsHTML}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px">ステップ ${active.stepIdx+1} / ${STEPS.length}</div>
+
+      ${!isPosting?`
+      <!-- Timer -->
+      <div id="timer-box">
+        <div id="timer-display">00:00</div>
+        <button class="timer-btn timer-start" onclick="startTimer()" title="スタート">▶</button>
+        <button class="timer-btn timer-stop" onclick="stopTimer()" title="ストップ">■</button>
+        <button class="timer-btn timer-reset" onclick="resetTimer()" title="リセット">↺</button>
+      </div>
+      <div class="time-manual">
+        <span>手動入力:</span>
+        <input class="time-inp" id="manual-h" type="number" min="0" max="23" placeholder="0" value="0"/>
+        <span>時間</span>
+        <input class="time-inp" id="manual-m" type="number" min="0" max="59" placeholder="0" value="0"/>
+        <span>分</span>
+      </div>
+      `:``}
+
+      <div style="margin-top:16px">
+        ${isPosting?`
+          <div class="form-group">
+            <label class="lbl">投稿先</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer">
+                <input type="checkbox" id="post-x" style="accent-color:var(--accent)"/> X (Twitter)
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer">
+                <input type="checkbox" id="post-pix" style="accent-color:var(--accent)"/> pixiv
+              </label>
+            </div>
+            <label class="lbl">いいね数 (任意)</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">X</div><input class="inp" id="likes-x" type="number" placeholder="0"/></div>
+              <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">pixiv</div><input class="inp" id="likes-pix" type="number" placeholder="0"/></div>
+            </div>
+            <label class="lbl">フォロワー数（投稿後）</label>
+            <input class="inp" id="follower-after" type="number" placeholder="現在のフォロワー数"/>
+          </div>
+          <button class="btn btn-accent" style="width:100%" onclick="completePost('${active.id}')">✦ 投稿完了！</button>
+        `:`
+          <div class="step-nav">
+            <button class="step-nav-btn complete" onclick="completeStep('${active.id}')">このステップを完了 +${XP.step}XP</button>
+          </div>
+        `}
+      </div>
+    </div>`;
+
+  // restore timer display
+  document.getElementById('timer-display').textContent=fmtTime(timerSec);
+}
+
+function getTurnNum(){
+  if(!state.lastActiveDate) return 1;
+  const diff=Math.floor((new Date()-new Date(state.lastActiveDate))/(1000*60*60*24));
+  return Math.max(1,state.streakDays||1);
+}
+
+function completeStep(id){
+  const w=state.works.find(x=>x.id==id);
+  if(!w||w.stepIdx>=STEPS.length-1) return;
+  // save time
+  const h=parseInt(document.getElementById('manual-h')?.value||0)||0;
+  const m=parseInt(document.getElementById('manual-m')?.value||0)||0;
+  const manualMin=h*60+m;
+  const timerMin=Math.floor(timerSec/60);
+  const totalMin=manualMin>0?manualMin:timerMin;
+  w.timeLog=w.timeLog||[];
+  w.timeLog.push({step:STEPS[w.stepIdx],min:totalMin,date:todayISO()});
+  w.totalMin=(w.totalMin||0)+totalMin;
+  w.stepIdx++;
+  resetTimer();
+  // streak
+  updateStreak();
+  addXp(XP.step);
+  save();
+  renderToday();
+  renderWorks();
+  toast(`${STEPS[w.stepIdx-1]} 完了！ +${XP.step}XP`);
+}
+
+function completePost(id){
+  const w=state.works.find(x=>x.id==id);
+  if(!w) return;
+  const platforms=[];
+  if(document.getElementById('post-x')?.checked) platforms.push('X');
+  if(document.getElementById('post-pix')?.checked) platforms.push('pixiv');
+  w.posted=true;
+  w.postedDate=todayISO();
+  w.platforms=platforms;
+  w.likesX=parseInt(document.getElementById('likes-x')?.value||0)||0;
+  w.likesPix=parseInt(document.getElementById('likes-pix')?.value||0)||0;
+  const followerAfter=parseInt(document.getElementById('follower-after')?.value||0)||0;
+  if(followerAfter>0){state.goal&&(state.goal.followerNow=followerAfter);}
+  updateStreak();
+  addXp(XP.post);
+  save();
+  renderToday();renderWorks();renderRecord();renderGoals();
+  toast(`投稿完了！ +${XP.post}XP おめでとう！`);
+}
+
+function updateStreak(){
+  const t=today();
+  if(state.lastActiveDate===t) return;
+  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  if(state.lastActiveDate===yesterday.toDateString()){
+    state.streakDays=(state.streakDays||0)+1;
+  } else {
+    state.streakDays=1;
+  }
+  state.lastActiveDate=t;
+}
+
+// ===== WORKS =====
+function renderWorks(){
+  const list=document.getElementById('work-list');
+  const empty=document.getElementById('work-empty');
+  if(state.works.length===0){list.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  list.innerHTML=state.works.map(w=>`
+    <div class="work-item${w.posted?' posted':''}" onclick="openModal('${w.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="work-title">${esc(w.title)}</div>
+        <div class="work-step-badge${w.posted?' posted':''}">${w.posted?'投稿済':STEPS[w.stepIdx]}</div>
+      </div>
+      <div class="work-meta">
+        <span>${w.postedDate||w.createdDate}</span>
+        ${w.totalMin?`<span>${Math.floor(w.totalMin/60)}h${w.totalMin%60}m</span>`:''}
+        ${w.platforms?.length?`<span>${w.platforms.join(' / ')}</span>`:''}
+      </div>
+      <div class="steps" style="margin:8px 0 0">${STEPS.map((_,i)=>`<div class="step ${i<w.stepIdx||(w.posted&&i<STEPS.length)?'done':i===w.stepIdx?'current':''}"></div>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function addWork(){
+  const inp=document.getElementById('work-input');
+  const t=inp.value.trim();if(!t)return;
+  state.works.unshift({id:Date.now()+'',title:t,stepIdx:0,createdDate:todayISO(),timeLog:[],totalMin:0,feedbacks:[],posted:false});
+  inp.value='';save();renderWorks();renderToday();
+  toast('イラストを追加しました');
+}
+
+document.getElementById('work-add').addEventListener('click',addWork);
+document.getElementById('work-input').addEventListener('keydown',e=>{if(e.key==='Enter')addWork();});
+
+// ===== MODAL =====
+let currentModalId=null;
+function openModal(id){
+  currentModalId=id;
+  const w=state.works.find(x=>x.id===id);if(!w)return;
+  document.getElementById('modal-work-title').textContent=w.title;
+  const body=document.getElementById('modal-body');
+
+  const fbHTML=w.feedbacks&&w.feedbacks.length
+    ?w.feedbacks.map(f=>`<div class="fb-item"><div class="fb-date">${f.date}</div><div class="fb-text">${esc(f.text)}</div></div>`).join('')
+    :`<p style="font-size:13px;color:var(--text3);margin-bottom:10px">まだふりかえりコメントはありません</p>`;
+
+  const timeHTML=w.timeLog&&w.timeLog.length
+    ?w.timeLog.map(t=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border)"><span>${t.step}</span><span>${Math.floor(t.min/60)}h${t.min%60}m (${t.date})</span></div>`).join('')
+    :`<p style="font-size:12px;color:var(--text3)">記録なし</p>`;
+
+  body.innerHTML=`
+    <div style="margin-bottom:14px">
+      <div class="sec">進捗</div>
+      <div class="steps">${STEPS.map((_,i)=>`<div class="step ${i<w.stepIdx||(w.posted)?'done':i===w.stepIdx?'current':''}"></div>`).join('')}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">${w.posted?'投稿済み':STEPS[w.stepIdx]}</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="sec">制作時間ログ</div>
+      ${timeHTML}
+      ${w.totalMin?`<div style="font-size:12px;color:var(--accent);margin-top:6px;font-weight:700">合計 ${Math.floor(w.totalMin/60)}h${w.totalMin%60}m</div>`:''}
+    </div>
+    ${w.posted?`
+    <div style="margin-bottom:14px">
+      <div class="sec">投稿情報</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        日付: ${w.postedDate}<br>
+        投稿先: ${w.platforms?.join(' / ')||'-'}<br>
+        X いいね: ${w.likesX||0} / pixiv いいね: ${w.likesPix||0}
+      </div>
+    </div>
+    <div>
+      <div class="sec">ふりかえり</div>
+      ${fbHTML}
+      <div class="fb-input-area">
+        <textarea class="inp" id="fb-input" rows="3" placeholder="この絵のふりかえりをメモ...（次に活かしたいことなど）" style="resize:vertical"></textarea>
+        <button class="btn btn-accent btn-sm" style="margin-top:8px;width:100%" onclick="addFeedback('${id}')">コメントを追加 +${XP.feedback}XP</button>
+      </div>
+    </div>
+    `:`<p style="font-size:12px;color:var(--text3)">投稿後にふりかえりを追加できます</p>`}
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn-danger btn-sm" onclick="deleteWork('${id}')">この作品を削除</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function addFeedback(id){
+  const inp=document.getElementById('fb-input');
+  const text=inp.value.trim();if(!text)return;
+  const w=state.works.find(x=>x.id===id);if(!w)return;
+  w.feedbacks=w.feedbacks||[];
+  w.feedbacks.push({text,date:todayISO()});
+  addXp(XP.feedback);save();
+  openModal(id);
+  toast(`ふりかえりを追加 +${XP.feedback}XP`);
+}
+
+function deleteWork(id){
+  if(!confirm('この作品を削除しますか？')) return;
+  state.works=state.works.filter(x=>x.id!==id);
+  save();renderWorks();renderToday();renderRecord();
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+document.getElementById('modal-close').addEventListener('click',()=>{
+  document.getElementById('modal-overlay').classList.remove('open');
+  currentModalId=null;
+});
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay')){
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+});
+
+// ===== GOALS =====
+function renderGoals(){
+  const g=state.goal;
+  const disp=document.getElementById('goal-display');
+  if(!g){disp.innerHTML='';return;}
+
+  // prefill form
+  document.getElementById('g-follower').value=g.followerTarget||'';
+  document.getElementById('g-follower-now').value=g.followerNow||'';
+  document.getElementById('g-event').value=g.event||'';
+  document.getElementById('g-deadline').value=g.deadline||'';
+
+  const today2=new Date();today2.setHours(0,0,0,0);
+  const deadlineDate=g.deadline?new Date(g.deadline):null;
+  const daysLeft=deadlineDate?Math.ceil((deadlineDate-today2)/(1000*60*60*24)):null;
+  const followerPct=g.followerTarget&&g.followerNow?Math.min(100,Math.round(g.followerNow/g.followerTarget*100)):0;
+
+  disp.innerHTML=`
+    <div class="goal-card">
+      <div class="goal-title">${g.event?esc(g.event):'目標'}</div>
+      ${g.followerTarget?`
+        <div class="goal-meta">フォロワー: ${g.followerNow||0} / ${g.followerTarget}</div>
+        <div class="progress-track"><div class="progress-fill follower" style="width:${followerPct}%"></div></div>
+        <div class="days-left">${followerPct}% 達成</div>
+      `:''}
+      ${daysLeft!==null?`
+        <div class="goal-meta" style="margin-top:10px">締切: ${g.deadline}</div>
+        <div class="days-left ${daysLeft<=3?'urgent':''}">
+          ${daysLeft>0?`残り ${daysLeft} 日`:daysLeft===0?`今日が締切！`:`期限超過 ${Math.abs(daysLeft)} 日`}
+        </div>
+      `:''}
+    </div>
+  `;
+}
+
+document.getElementById('g-save').addEventListener('click',()=>{
+  state.goal={
+    followerTarget:parseInt(document.getElementById('g-follower').value)||0,
+    followerNow:parseInt(document.getElementById('g-follower-now').value)||0,
+    event:document.getElementById('g-event').value.trim(),
+    deadline:document.getElementById('g-deadline').value,
+  };
+  save();renderGoals();toast('目標を保存しました');
+});
+
+// ===== RECORD =====
+function renderRecord(){
+  const posted=state.works.filter(w=>w.posted);
+  const list=document.getElementById('record-list');
+  const empty=document.getElementById('record-empty');
+  if(posted.length===0){list.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  list.innerHTML=posted.map(w=>`
+    <div class="record-item" onclick="openModal('${w.id}')" style="cursor:pointer">
+      <div class="record-title">${esc(w.title)}</div>
+      <div class="record-meta">
+        <span>${w.postedDate}</span>
+        ${w.platforms?.includes('X')?`<span class="record-badge rb-x">X</span>`:''}
+        ${w.platforms?.includes('pixiv')?`<span class="record-badge rb-pix">pixiv</span>`:''}
+        ${w.likesX?`<span>X ♥${w.likesX}</span>`:''}
+        ${w.likesPix?`<span>pix ♥${w.likesPix}</span>`:''}
+        ${w.totalMin?`<span>制作${Math.floor(w.totalMin/60)}h${w.totalMin%60}m</span>`:''}
+        ${w.feedbacks?.length?`<span>ふりかえり${w.feedbacks.length}件</span>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== STATUS =====
+function renderStatus(){
+  const info=getRank(state.xp);
+  document.getElementById('s-rank').textContent=info.r.name;
+  document.getElementById('s-sub').textContent=`Lv.${info.r.lv} · ${state.xp} XP`;
+
+  const posted=state.works.filter(w=>w.posted);
+  const totalMin=state.works.reduce((a,w)=>a+(w.totalMin||0),0);
+  document.getElementById('s-posts').textContent=posted.length;
+  document.getElementById('s-works').textContent=state.works.length;
+  document.getElementById('s-days').textContent=(state.streakDays||0)+'日';
+  document.getElementById('s-time').textContent=Math.floor(totalMin/60)+'h';
+
+  // abilities (capped at 999)
+  const drawAbility=Math.min(999,state.works.reduce((a,w)=>a+(w.stepIdx||0)+(w.posted?5:0),0)*3);
+  const postAbility=Math.min(999,posted.length*80);
+  const analyzeAbility=Math.min(999,state.works.reduce((a,w)=>a+(w.feedbacks?.length||0),0)*50);
+  const totalTime=Math.min(999,Math.floor(totalMin/6));
+  const abilities=[
+    {name:'画力',val:drawAbility,color:'var(--accent)'},
+    {name:'投稿力',val:postAbility,color:'var(--purple)'},
+    {name:'分析力',val:analyzeAbility,color:'var(--blue)'},
+    {name:'継続力',val:totalTime,color:'var(--green)'},
+  ];
+  document.getElementById('abilities').innerHTML=abilities.map(a=>`
+    <div class="ability-row">
+      <span class="ability-name">${a.name}</span>
+      <div class="ability-track"><div class="ability-fill" style="width:${a.val/999*100}%;background:${a.color}"></div></div>
+      <span class="ability-val">${a.val}</span>
+    </div>
+  `).join('');
+
+  // rank table
+  document.getElementById('rank-table').innerHTML=RANKS.map(r=>{
+    const unlocked=state.xp>=r.xp;
+    const isCur=r.lv===info.r.lv;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);opacity:${unlocked?1:0.3}">
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="font-size:12px;color:var(--text3);width:32px">Lv.${r.lv}</span>
+        <span style="font-size:13px;font-weight:${isCur?700:400};color:${isCur?'var(--accent)':'var(--text)'}">${r.name}${isCur?' ←':''}</span>
+      </div>
+      <span style="font-size:11px;color:var(--text3)">${r.xp} XP</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== NAV =====
+document.getElementById('nav').addEventListener('click',e=>{
+  const btn=e.target.closest('.nav-btn');if(!btn)return;
+  const tab=btn.dataset.tab;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+tab));
+  if(tab==='today') renderToday();
+  if(tab==='goals') renderGoals();
+  if(tab==='record') renderRecord();
+  if(tab==='status') renderStatus();
+});
+
+// ===== INIT =====
+renderHeader();
+renderToday();
+renderWorks();
+renderGoals();
+renderRecord();
+renderStatus();
+
+// Service Worker
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+// Request notification permission
+if('Notification' in window && Notification.permission==='default'){
+  setTimeout(()=>Notification.requestPermission(),3000);
+}
+</script>
+</body>
+</html>
